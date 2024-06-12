@@ -52,18 +52,57 @@ struct ContentView: View {
                     self.text = strings.joined(separator: "\n")
                 }
             }
-
+            
             // Configurando a solicitação de reconhecimento de texto
             textRecognitionRequest.recognitionLevel = .accurate // Define o nível de precisão
             textRecognitionRequest.recognitionLanguages = ["pt"] // Define os idiomas de reconhecimento
             textRecognitionRequest.usesLanguageCorrection = true // Ativa a correção ortográfica
-
+            
             // Criando um manipulador de solicitação de imagem com os dados da imagem fornecida
             let requestHandler = VNImageRequestHandler(data: imageData!)
             // Executando a solicitação de reconhecimento de texto
             try? requestHandler.perform([textRecognitionRequest])
+            
+            // Sentiment Analysis https://developer.apple.com/documentation/naturallanguage/nltagscheme/3113856-sentimentscore
+            
+            // Criando um NLTagger com os esquemas de marcação de token e pontuação de sentimento
+            let tagger = NLTagger(tagSchemes: [.tokenType, .sentimentScore])
+            // Definindo o texto a ser analisado pelo NLTagger
+            tagger.string = text
 
-            // Sentiment Analysis https://developer.apple.com/documentation/naturallanguage/nltagscheme/3113856-sentimentscore        }
+            // Enumerando as tags de sentimento no texto em unidades de parágrafo
+            tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .paragraph, scheme: .sentimentScore, options: []) { tag, _ in
+                // Verificando se a tag de sentimento é não nula
+                if let tag = tag {
+                    // Convertendo a pontuação de sentimento para Double
+                    let score = Double(tag.rawValue)
+                    
+                    // Verificando se a pontuação é negativa
+                    if score! < 0 {
+                        // Atribuindo "Sentimento Negativo" à variável de sentimento
+                        self.sentiment = "Sentimento Negativo (\(tag.rawValue))"
+                    }
+                    // Verificando se a pontuação é positiva
+                    else if score! > 0 {
+                        // Atribuindo "Sentimento Positivo" à variável de sentimento
+                        self.sentiment = "Sentimento Positivo (\(tag.rawValue))"
+                    }
+                    // Caso contrário, o sentimento é neutro
+                    else {
+                        // Atribuindo "Sentimento Neutro" à variável de sentimento
+                        self.sentiment = "Sentimento Neutro"
+                    }
+                }
+                // Caso a tag de sentimento seja nula, o sentimento é indefinido
+                else {
+                    // Atribuindo "Sentimento Indefinido" à variável de sentimento
+                    self.sentiment = "Sentimento Indefinido"
+                }
+                
+                // Continuando a enumeração das tags de sentimento
+                return true
+            }
+        }
     }
 }
 
